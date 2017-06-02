@@ -24,6 +24,9 @@ import PackageDescription
 	let package = Package(
 		name: "Socket",
 		targets: [Target(name: "Socket")],
+		dependencies: [
+			.Package(url: "https://github.com/gtaban/security.git", majorVersion: 0),
+			],
 		exclude: ["BlueSocket.xcodeproj", "BlueSocket.xcworkspace", "README.md", "Sources/Info.plist", "Sources/Socket.h"]
 	)
 

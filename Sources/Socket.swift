@@ -25,13 +25,14 @@
 #endif
 
 import Foundation
+import TLSService
 
 // MARK: Socket
 
 ///
 /// **Socket:** Low level BSD sockets wrapper.
 ///
-public class Socket: SocketReader, SocketWriter {
+public class Socket: SocketReader, SocketWriter, ConnectionDelegate {
 	
 	// MARK: Constants
 	
@@ -736,12 +737,12 @@ public class Socket: SocketReader, SocketWriter {
 		}
 		
 		///
-		/// Initializes an Error instance using SSLError
+		/// Initializes an Error instance using TLSError
 		///
-		/// - Parameter error: SSLError instance to be transformed
+		/// - Parameter error: TLSError instance to be transformed
 		///
 		/// - Returns: Error Instance
-		init(with error: SSLError) {
+		init(with error: TLSError) {
 			
 			self.init(code: error.code, reason: error.description)
 		}
@@ -770,7 +771,17 @@ public class Socket: SocketReader, SocketWriter {
 	/// The file descriptor representing this socket. (Readonly)
 	///
 	public internal(set) var socketfd: Int32 = SOCKET_INVALID_DESCRIPTOR
-	
+
+    ///
+    /// Return the file descriptor as a connection endpoint. (Readonly)
+    ///
+    public var endpoint: ConnectionType {
+        get {
+            return ConnectionType.socket(self.socketfd)
+        }
+    }
+
+    
 	///
 	/// The signature for the socket. (Readonly)
 	/// 	**Note:** See Signature above.
@@ -778,18 +789,19 @@ public class Socket: SocketReader, SocketWriter {
 	public internal(set) var signature: Signature? = nil
 	
 	///
-	/// The delegate that provides the SSL implementation.
+	/// The delegate that provides the TLS implementation.
 	///
-	public var delegate: SSLServiceDelegate? = nil {
-		
-		didSet {
-			
-			// If setting an SSL delegate, bump up the read buffer size...
-			if delegate != nil {
-				readBufferSize = Socket.SOCKET_DEFAULT_SSL_READ_BUFFER_SIZE
-			}
-		}
-	}
+    public var TLSdelegate: TLSServiceDelegate? = nil {
+        
+        didSet {
+            
+            // If setting a TLS delegate, bump up the read buffer size...
+            if TLSdelegate != nil {
+                readBufferSize = Socket.SOCKET_DEFAULT_SSL_READ_BUFFER_SIZE
+            }
+        }
+    }
+    
 	
 	///
 	/// Internal Read buffer size for all open sockets.
@@ -1462,19 +1474,19 @@ public class Socket: SocketReader, SocketWriter {
 		// Let the delegate do post accept handling and verification...
 		do {
 			
-			if self.delegate != nil {
-				try self.delegate?.onAccept(socket: newSocket)
+			if self.TLSdelegate != nil {
+				try self.TLSdelegate?.didAccept(connection: newSocket)
 				newSocket.signature?.isSecure = true
 			}
 			
 		} catch let error {
 			
-			guard let sslError = error as? SSLError else {
+			guard let tlsError = error as? TLSError else {
 				
 				throw error
 			}
 			
-			throw Error(with: sslError)
+			throw Error(with: tlsError)
 		}
 		
 		// Return the new socket...
@@ -1616,19 +1628,19 @@ public class Socket: SocketReader, SocketWriter {
 		// Let the delegate do post accept handling and verification...
 		do {
 			
-			if self.delegate != nil {
-				try self.delegate?.onAccept(socket: self)
+			if self.TLSdelegate != nil {
+				try self.TLSdelegate?.didAccept(connection: self)
 				self.signature?.isSecure = true
 			}
 			
 		} catch let error {
 			
-			guard let sslError = error as? SSLError else {
+			guard let tlsError = error as? TLSError else {
 				
 				throw error
 			}
 			
-			throw Error(with: sslError)
+			throw Error(with: tlsError)
 		}
 	}
 	
@@ -1677,16 +1689,16 @@ public class Socket: SocketReader, SocketWriter {
 		// Tell the delegate to initialize as a client...
 		do {
 			
-			try self.delegate?.initialize(asServer: false)
+            try self.TLSdelegate?.didClientCreate()
 			
 		} catch let error {
 			
-			guard let sslError = error as? SSLError else {
+			guard let tlsError = error as? TLSError else {
 				
 				throw error
 			}
 			
-			throw Error(with: sslError)
+			throw Error(with: tlsError)
 		}
 		
 		// Create the hints for our search...
@@ -1822,19 +1834,19 @@ public class Socket: SocketReader, SocketWriter {
 		// Let the delegate do post connect handling and verification...
 		do {
 			
-			if self.delegate != nil {
-				try self.delegate?.onConnect(socket: self)
+			if self.TLSdelegate != nil {
+				try self.TLSdelegate?.didConnect(connection: self)
 				self.signature?.isSecure = true
 			}
 			
 		} catch let error {
 			
-			guard let sslError = error as? SSLError else {
+			guard let tlsError = error as? TLSError else {
 				
 				throw error
 			}
 			
-			throw Error(with: sslError)
+			throw Error(with: tlsError)
 		}
 	}
 	
@@ -1937,16 +1949,16 @@ public class Socket: SocketReader, SocketWriter {
 		// Tell the delegate to initialize as a client...
 		do {
 			
-			try self.delegate?.initialize(asServer: false)
+			try self.TLSdelegate?.didClientCreate()
 			
 		} catch let error {
 			
-			guard let sslError = error as? SSLError else {
+			guard let tlsError = error as? TLSError else {
 				
 				throw error
 			}
 			
-			throw Error(with: sslError)
+			throw Error(with: tlsError)
 		}
 		
 		// Now, do the connection using the supplied address...
@@ -1978,19 +1990,19 @@ public class Socket: SocketReader, SocketWriter {
 		// Let the delegate do post connect handling and verification...
 		do {
 			
-			if self.delegate != nil {
-				try self.delegate?.onConnect(socket: self)
+			if self.TLSdelegate != nil {
+				try self.TLSdelegate?.didConnect(connection: self)
 				self.signature?.isSecure = true
 			}
 			
 		} catch let error {
 			
-			guard let sslError = error as? SSLError else {
+			guard let tlsError = error as? TLSError else {
 				
 				throw error
 			}
 			
-			throw Error(with: sslError)
+			throw Error(with: tlsError)
 		}
 	}
 	
@@ -2049,16 +2061,16 @@ public class Socket: SocketReader, SocketWriter {
 			// Tell the delegate to initialize as a server...
 			do {
 			
-				try self.delegate?.initialize(asServer: true)
+                try self.TLSdelegate?.didServerCreate()
 			
 			} catch let error {
 			
-				guard let sslError = error as? SSLError else {
+				guard let tlsError = error as? TLSError else {
 				
 					throw error
 				}
 			
-				throw Error(with: sslError)
+				throw Error(with: tlsError)
 			}
 		}
 		
@@ -2221,7 +2233,7 @@ public class Socket: SocketReader, SocketWriter {
 		#endif
 		
 		self.isListening = true
-		self.signature?.isSecure = self.delegate != nil ? true : false
+		self.signature?.isSecure = self.TLSdelegate != nil ? true : false
 	}
 	
 	// MARK: --- UNIX
@@ -2858,19 +2870,19 @@ public class Socket: SocketReader, SocketWriter {
 		while sent < bufSize {
 			
 			var s = 0
-			if self.delegate != nil {
+			if self.TLSdelegate != nil {
 				
 				repeat {
 					
 					do {
 					
-						s = try self.delegate!.send(buffer: buffer.advanced(by: sent), bufSize: Int(bufSize - sent))
+						s = try self.TLSdelegate!.willSend(buffer: buffer.advanced(by: sent), bufSize: Int(bufSize - sent))
 						
 						break
 					
 					} catch let error {
 					
-						guard let err = error as? SSLError else {
+						guard let err = error as? TLSError else {
 						
 							throw error
 						}
@@ -3309,7 +3321,7 @@ public class Socket: SocketReader, SocketWriter {
 	/// Closes the current socket.
 	///
 	///	- Parameters:
-	///		- withSSLCleanup:	True to deinitialize the SSLService if present.
+	///		- withSSLCleanup:	True to deinitialize the TLSService if present.
 	///
 	private func close(withSSLCleanup: Bool) {
 		
@@ -3317,7 +3329,7 @@ public class Socket: SocketReader, SocketWriter {
 			
 			// If we have a delegate, tell it to cleanup too...
 			if withSSLCleanup {
-				self.delegate?.deinitialize()
+				self.TLSdelegate?.willDestroy()
 			}
 			
 			// Note: if the socket is listening, we need to shut it down prior to closing
@@ -3379,7 +3391,7 @@ public class Socket: SocketReader, SocketWriter {
 		var count: Int = 0
 		repeat {
 			
-			if self.delegate == nil {
+			if self.TLSdelegate == nil {
 				
 				#if os(Linux)
 					count = Glibc.recv(self.socketfd, self.readBuffer, self.readBufferSize, recvFlags)
@@ -3393,13 +3405,13 @@ public class Socket: SocketReader, SocketWriter {
 					
 					do {
 						
-						count = try self.delegate!.recv(buffer: self.readBuffer, bufSize: self.readBufferSize)
+						count = try self.TLSdelegate!.willReceive(buffer: self.readBuffer, bufSize: self.readBufferSize)
 						
 						break
 						
 					} catch let error {
 						
-						guard let err = error as? SSLError else {
+						guard let err = error as? TLSError else {
 							
 							throw error
 						}
