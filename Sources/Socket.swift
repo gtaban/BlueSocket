@@ -25,7 +25,7 @@
 #endif
 
 import Foundation
-import TLSService
+import ServerSecurity
 
 // MARK: Socket
 
