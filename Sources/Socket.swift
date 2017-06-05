@@ -25,6 +25,7 @@
 #endif
 
 import Foundation
+import ServerSecurity
 
 // MARK: Socket
 
