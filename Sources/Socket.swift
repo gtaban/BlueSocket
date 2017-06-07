@@ -1835,7 +1835,7 @@ public class Socket: SocketReader, SocketWriter, ConnectionDelegate {
 		do {
 			
 			if self.TLSdelegate != nil {
-				try self.TLSdelegate?.didConnect(connection: self)
+				try self.TLSdelegate?.didConnect(to: self)
 				self.signature?.isSecure = true
 			}
 			
@@ -1991,7 +1991,7 @@ public class Socket: SocketReader, SocketWriter, ConnectionDelegate {
 		do {
 			
 			if self.TLSdelegate != nil {
-				try self.TLSdelegate?.didConnect(connection: self)
+				try self.TLSdelegate?.didConnect(to: self)
 				self.signature?.isSecure = true
 			}
 			
@@ -3405,7 +3405,7 @@ public class Socket: SocketReader, SocketWriter, ConnectionDelegate {
 					
 					do {
 						
-						count = try self.TLSdelegate!.willReceive(buffer: self.readBuffer, bufSize: self.readBufferSize)
+						count = try self.TLSdelegate!.willReceive(into: self.readBuffer, bufSize: self.readBufferSize)
 						
 						break
 						
