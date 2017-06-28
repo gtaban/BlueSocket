@@ -1689,7 +1689,7 @@ public class Socket: SocketReader, SocketWriter, ConnectionDelegate {
 		// Tell the delegate to initialize as a client...
 		do {
 			
-            try self.TLSdelegate?.didClientCreate()
+            try self.TLSdelegate?.didCreateClient()
 			
 		} catch let error {
 			
@@ -1949,7 +1949,7 @@ public class Socket: SocketReader, SocketWriter, ConnectionDelegate {
 		// Tell the delegate to initialize as a client...
 		do {
 			
-			try self.TLSdelegate?.didClientCreate()
+			try self.TLSdelegate?.didCreateClient()
 			
 		} catch let error {
 			
@@ -2061,7 +2061,7 @@ public class Socket: SocketReader, SocketWriter, ConnectionDelegate {
 			// Tell the delegate to initialize as a server...
 			do {
 			
-                try self.TLSdelegate?.didServerCreate()
+                try self.TLSdelegate?.didCreateServer()
 			
 			} catch let error {
 			
